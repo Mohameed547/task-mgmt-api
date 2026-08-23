@@ -2,7 +2,7 @@ import request from 'supertest';
 import app from '../src/app';
 
 describe('GET /api/health', () => {
-  it('should return 200 OK with server health information', async () => {
+  it('should return 200 OK with server health and database status information', async () => {
     const response = await request(app).get('/api/health');
 
     expect(response.status).toBe(200);
@@ -12,6 +12,7 @@ describe('GET /api/health', () => {
     expect(response.body.data).toHaveProperty('uptime');
     expect(response.body.data).toHaveProperty('timestamp');
     expect(response.body.data).toHaveProperty('environment');
+    expect(response.body.data).toHaveProperty('database');
   });
 
   it('should return 404 for an unknown API route', async () => {

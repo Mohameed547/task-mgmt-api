@@ -1,6 +1,6 @@
 # Task Management Application - Backend API
 
-Production-ready TypeScript Express backend foundation for the Task Management Application with MongoDB/Mongoose integration.
+Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration.
 
 ## Tech Stack
 
@@ -14,20 +14,20 @@ Production-ready TypeScript Express backend foundation for the Task Management A
 ## Project Architecture
 
 ```text
-backend/
+task-mgmt-api/
 ├── src/
-│   ├── config/          # Application & Database environment configurations
+│   ├── config/          # Application & MongoDB database configuration
 │   ├── controllers/     # Route handlers & controller logic
 │   ├── middleware/      # Centralized error handling, request logging, & route protection
 │   ├── models/          # Mongoose database models & schemas
 │   ├── routes/          # Express route definitions & modular routing
-│   ├── schemas/         # Validation schemas (e.g. Zod / Joi / custom)
+│   ├── schemas/         # Validation schemas
 │   ├── services/        # Reusable business logic layer
 │   ├── types/           # Custom TypeScript interfaces & type aliases
 │   ├── utils/           # Utility functions (ApiError, ApiResponse, asyncHandler, logger)
 │   ├── app.ts           # Express application configuration & middleware stack
 │   └── server.ts        # Application entry point & graceful shutdown handling
-├── tests/               # Unit and integration test suites
+├── tests/               # Unit and integration test suites (database & API endpoints)
 ├── .env.example         # Example environment variables template
 ├── .gitignore           # Git ignore configuration
 ├── jest.config.ts       # Jest testing configuration
@@ -35,29 +35,26 @@ backend/
 └── tsconfig.json        # TypeScript compiler options (strict mode)
 ```
 
-## Setup & Installation
+## MongoDB Setup Instructions
 
-1. **Navigate to the backend directory**:
-   ```bash
-   cd backend
-   ```
+1. **Install MongoDB**:
+   Ensure MongoDB Community Server is installed locally or obtain a remote MongoDB connection string (e.g. MongoDB Atlas).
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables**:
-   Copy `.env.example` to `.env`:
+2. **Configure Connection String**:
+   Create a `.env` file from `.env.example`:
    ```bash
    cp .env.example .env
    ```
+   Set `MONGODB_URI` to your database URI:
+   ```env
+   MONGODB_URI=mongodb://localhost:27017/task_management_db
+   ```
+   *Note: Credentials and secrets must NEVER be hardcoded into source code. Always configure connection details via environment variables.*
 
-   Adjust environment variables as needed:
-   - `PORT`: Server port (default `5000`)
-   - `NODE_ENV`: Environment mode (`development` | `production` | `test`)
-   - `MONGODB_URI`: MongoDB connection string
-   - `CORS_ORIGIN`: Allowed frontend origin (default `http://localhost:3000`)
+3. **Database Startup & Fault Tolerance**:
+   - The application connects to MongoDB using Mongoose before starting the HTTP listener.
+   - If database connection fails during server startup, server initialization is aborted and an error is logged (`Server will not start silently when DB connection fails`).
+   - Mongoose readyState is exposed via `/api/health`.
 
 ## Available Scripts
 
@@ -75,7 +72,7 @@ backend/
 ### Health Check Endpoint
 
 - **Endpoint**: `GET /api/health`
-- **Description**: Returns current server status, uptime, and timestamp.
+- **Description**: Returns current server status, uptime, environment, and MongoDB database connection state.
 - **Success Response (200 OK)**:
   ```json
   {
@@ -84,7 +81,8 @@ backend/
     "data": {
       "uptime": 12.345,
       "timestamp": "2026-08-23T19:35:00.000Z",
-      "environment": "development"
+      "environment": "development",
+      "database": "connected"
     }
   }
   ```
@@ -92,13 +90,3 @@ backend/
 ## Error Handling Architecture
 
 Centralized error handling is implemented using a custom `ApiError` class extending `Error`. All asynchronous route controllers are wrapped with `asyncHandler` to pass unexpected errors to the global `errorHandler` middleware.
-
-Example JSON error response:
-```json
-{
-  "status": "fail",
-  "statusCode": 400,
-  "message": "Bad request test error",
-  "errors": ["Invalid parameter"]
-}
-```
