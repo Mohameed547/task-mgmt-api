@@ -1,2 +1,1 @@
-// Placeholder for business logic services
-export {};
+export { AuthService } from './auth.service';

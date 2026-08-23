@@ -1,2 +1,1 @@
-// Placeholder for validation schemas
-export {};
+export { validateRegisterInput, RegisterInput } from './auth.schema';
