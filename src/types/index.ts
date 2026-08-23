@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Document, Types } from 'mongoose';
 
 export interface ApiResponse<T = unknown> {
   status: 'success' | 'fail' | 'error';
@@ -26,6 +27,29 @@ export interface IUser {
   name: string;
   email: string;
   password?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export enum TaskStatus {
+  TODO = 'TODO',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DONE = 'DONE',
+}
+
+export enum TaskPriority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+}
+
+export interface ITask {
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate?: Date;
+  user: Types.ObjectId | string;
   createdAt?: Date;
   updatedAt?: Date;
 }
