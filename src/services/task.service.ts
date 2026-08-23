@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { Task, ITaskDocument } from '../models';
-import { CreateTaskInput, UpdateTaskInput } from '../schemas';
+import { CreateTaskInput, UpdateTaskInput, TaskQueryFilters } from '../schemas';
 import { ApiError } from '../utils/ApiError';
 
 export class TaskService {
@@ -17,10 +17,30 @@ export class TaskService {
   }
 
   /**
-   * Retrieves all tasks belonging strictly to the authenticated user.
+   * Retrieves all tasks belonging strictly to the authenticated user with optional search and filtering.
    */
-  public static async getUserTasks(userId: string): Promise<ITaskDocument[]> {
-    const tasks = await Task.find({ user: userId }).sort({ createdAt: -1 });
+  public static async getUserTasks(
+    userId: string,
+    filters?: TaskQueryFilters
+  ): Promise<ITaskDocument[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mongoQuery: Record<string, any> = { user: userId };
+
+    if (filters?.status) {
+      mongoQuery.status = filters.status;
+    }
+
+    if (filters?.priority) {
+      mongoQuery.priority = filters.priority;
+    }
+
+    if (filters?.search) {
+      // Escape special regex syntax characters to prevent regex injection attacks
+      const safeSearch = filters.search.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&');
+      mongoQuery.title = { $regex: safeSearch, $options: 'i' };
+    }
+
+    const tasks = await Task.find(mongoQuery).sort({ createdAt: -1 });
     return tasks;
   }
 

@@ -16,6 +16,12 @@ export interface UpdateTaskInput {
   dueDate?: string | Date;
 }
 
+export interface TaskQueryFilters {
+  search?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+}
+
 export const validateCreateTaskInput = (
   data: unknown
 ): { isValid: boolean; errors: string[]; data?: CreateTaskInput } => {
@@ -148,5 +154,55 @@ export const validateUpdateTaskInput = (
     isValid: true,
     errors: [],
     data: sanitizedData,
+  };
+};
+
+export const validateTaskQuery = (
+  query: Record<string, unknown>
+): { isValid: boolean; errors: string[]; data?: TaskQueryFilters } => {
+  const errors: string[] = [];
+  const filters: TaskQueryFilters = {};
+
+  if (query.search !== undefined && query.search !== null) {
+    if (typeof query.search !== 'string') {
+      errors.push('Search parameter must be a string');
+    } else {
+      const trimmedSearch = query.search.trim();
+      if (trimmedSearch.length > 0) {
+        filters.search = trimmedSearch;
+      }
+    }
+  }
+
+  if (query.status !== undefined && query.status !== null) {
+    const statusStr = String(query.status).trim();
+    if (statusStr.length > 0) {
+      if (!Object.values(TaskStatus).includes(statusStr as TaskStatus)) {
+        errors.push(`Invalid status filter. Allowed values: ${Object.values(TaskStatus).join(', ')}`);
+      } else {
+        filters.status = statusStr as TaskStatus;
+      }
+    }
+  }
+
+  if (query.priority !== undefined && query.priority !== null) {
+    const priorityStr = String(query.priority).trim();
+    if (priorityStr.length > 0) {
+      if (!Object.values(TaskPriority).includes(priorityStr as TaskPriority)) {
+        errors.push(`Invalid priority filter. Allowed values: ${Object.values(TaskPriority).join(', ')}`);
+      } else {
+        filters.priority = priorityStr as TaskPriority;
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    return { isValid: false, errors };
+  }
+
+  return {
+    isValid: true,
+    errors: [],
+    data: filters,
   };
 };

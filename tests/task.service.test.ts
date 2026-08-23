@@ -48,8 +48,8 @@ describe('TaskService Unit Tests', () => {
     });
   });
 
-  describe('getUserTasks', () => {
-    it('should retrieve all tasks for userA', async () => {
+  describe('getUserTasks with Search and Filters', () => {
+    it('should retrieve all tasks for userA when no filters are provided', async () => {
       const mockTasks = [
         { _id: taskId, title: 'User A Task 1', user: userAId },
         { _id: new mongoose.Types.ObjectId().toString(), title: 'User A Task 2', user: userAId },
@@ -63,6 +63,60 @@ describe('TaskService Unit Tests', () => {
       expect(mockTaskFind).toHaveBeenCalledWith({ user: userAId });
       expect(mockSort).toHaveBeenCalledWith({ createdAt: -1 });
       expect(result).toHaveLength(2);
+    });
+
+    it('should query MongoDB with escaped regex when search filter is provided', async () => {
+      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      await TaskService.getUserTasks(userAId, { search: 'meeting (team)' });
+
+      expect(mockTaskFind).toHaveBeenCalledWith({
+        user: userAId,
+        title: { $regex: 'meeting \\(team\\)', $options: 'i' },
+      });
+    });
+
+    it('should query MongoDB with status filter when status is provided', async () => {
+      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      await TaskService.getUserTasks(userAId, { status: TaskStatus.IN_PROGRESS });
+
+      expect(mockTaskFind).toHaveBeenCalledWith({
+        user: userAId,
+        status: TaskStatus.IN_PROGRESS,
+      });
+    });
+
+    it('should query MongoDB with priority filter when priority is provided', async () => {
+      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      await TaskService.getUserTasks(userAId, { priority: TaskPriority.HIGH });
+
+      expect(mockTaskFind).toHaveBeenCalledWith({
+        user: userAId,
+        priority: TaskPriority.HIGH,
+      });
+    });
+
+    it('should combine search, status, and priority in MongoDB query', async () => {
+      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      await TaskService.getUserTasks(userAId, {
+        search: 'urgent',
+        status: TaskStatus.TODO,
+        priority: TaskPriority.HIGH,
+      });
+
+      expect(mockTaskFind).toHaveBeenCalledWith({
+        user: userAId,
+        title: { $regex: 'urgent', $options: 'i' },
+        status: TaskStatus.TODO,
+        priority: TaskPriority.HIGH,
+      });
     });
   });
 

@@ -100,7 +100,7 @@ describe('Task API Endpoints (/api/tasks)', () => {
     });
   });
 
-  describe('GET /api/tasks (List Own Tasks)', () => {
+  describe('GET /api/tasks (List & Search & Filter Tasks)', () => {
     it('should return 200 OK with list of tasks owned by authenticated user', async () => {
       const mockTasks = [
         {
@@ -122,6 +122,115 @@ describe('Task API Endpoints (/api/tasks)', () => {
       expect(response.body).toHaveProperty('status', 'success');
       expect(response.body.data).toHaveLength(1);
       expect(mockTaskFind).toHaveBeenCalledWith({ user: userAId });
+    });
+
+    it('should filter tasks by title search query parameter', async () => {
+      const mockTasks = [
+        {
+          _id: taskId,
+          title: 'Team Meeting Prep',
+          user: userAId,
+          toJSON: jest.fn().mockReturnValue({ _id: taskId, title: 'Team Meeting Prep' }),
+        },
+      ];
+
+      const mockSort = jest.fn().mockResolvedValueOnce(mockTasks);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      const response = await request(app)
+        .get('/api/tasks?search=meeting')
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveLength(1);
+      expect(mockTaskFind).toHaveBeenCalledWith({
+        user: userAId,
+        title: { $regex: 'meeting', $options: 'i' },
+      });
+    });
+
+    it('should filter tasks by status query parameter', async () => {
+      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      const response = await request(app)
+        .get('/api/tasks?status=TODO')
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      expect(response.status).toBe(200);
+      expect(mockTaskFind).toHaveBeenCalledWith({
+        user: userAId,
+        status: TaskStatus.TODO,
+      });
+    });
+
+    it('should filter tasks by priority query parameter', async () => {
+      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      const response = await request(app)
+        .get('/api/tasks?priority=HIGH')
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      expect(response.status).toBe(200);
+      expect(mockTaskFind).toHaveBeenCalledWith({
+        user: userAId,
+        priority: TaskPriority.HIGH,
+      });
+    });
+
+    it('should support combining search, status, and priority parameters', async () => {
+      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      const response = await request(app)
+        .get('/api/tasks?search=meeting&status=DONE&priority=HIGH')
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      expect(response.status).toBe(200);
+      expect(mockTaskFind).toHaveBeenCalledWith({
+        user: userAId,
+        title: { $regex: 'meeting', $options: 'i' },
+        status: TaskStatus.DONE,
+        priority: TaskPriority.HIGH,
+      });
+    });
+
+    it('should return 200 OK with empty array [] when no tasks match query criteria', async () => {
+      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      const response = await request(app)
+        .get('/api/tasks?search=nonexistentterm')
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('status', 'success');
+      expect(response.body.data).toEqual([]);
+    });
+
+    it('should return 400 Bad Request when an invalid status query parameter is provided', async () => {
+      const response = await request(app)
+        .get('/api/tasks?status=INVALID_STATUS')
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('status', 'fail');
+      expect(response.body).toHaveProperty('message', 'Validation Error');
+    });
+
+    it('should maintain user isolation even when search query matches tasks owned by other users', async () => {
+      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+
+      await request(app)
+        .get('/api/tasks?search=common')
+        .set('Authorization', `Bearer ${userBToken}`);
+
+      expect(mockTaskFind).toHaveBeenCalledWith({
+        user: userBId,
+        title: { $regex: 'common', $options: 'i' },
+      });
     });
   });
 

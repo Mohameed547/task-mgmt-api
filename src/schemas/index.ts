@@ -10,4 +10,6 @@ export {
   CreateTaskInput,
   validateUpdateTaskInput,
   UpdateTaskInput,
+  validateTaskQuery,
+  TaskQueryFilters,
 } from './task.schema';

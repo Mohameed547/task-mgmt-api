@@ -1,6 +1,6 @@
 # Task Management Application - Backend API
 
-Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration, User data model, Task data model, User Registration, User Login with JWT Authentication, Authentication Middleware, and Task CRUD APIs.
+Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration, User data model, Task data model, User Registration, User Login with JWT Authentication, Authentication Middleware, and Task CRUD APIs with Search and Filtering.
 
 ## Tech Stack
 
@@ -101,61 +101,32 @@ All task endpoints enforce strict multi-tenant isolation. Users can only create,
     "dueDate": "2026-12-31T23:59:59.000Z"
   }
   ```
-- **Success Response (201 Created)**:
-  ```json
-  {
-    "status": "success",
-    "message": "Task created successfully",
-    "data": {
-      "_id": "607f1f77bcf86cd799439011",
-      "title": "Build Frontend UI",
-      "description": "Implement React UI components",
-      "status": "TODO",
-      "priority": "HIGH",
-      "dueDate": "2026-12-31T23:59:59.000Z",
-      "user": "507f1f77bcf86cd799439012",
-      "createdAt": "2026-08-24T00:00:00.000Z",
-      "updatedAt": "2026-08-24T00:00:00.000Z"
-    }
-  }
-  ```
 
-#### 2. List Authenticated User's Tasks
+#### 2. List & Search Tasks
 
 - **Endpoint**: `GET /api/tasks`
-- **Success Response (200 OK)**:
-  ```json
-  {
-    "status": "success",
-    "message": "Tasks retrieved successfully",
-    "data": [...]
-  }
-  ```
+- **Query Parameters**:
+  - `search` (optional): Case-insensitive search string for task title (e.g. `?search=meeting`).
+  - `status` (optional): Filter by task status (`TODO`, `IN_PROGRESS`, `DONE`).
+  - `priority` (optional): Filter by task priority (`LOW`, `MEDIUM`, `HIGH`).
+- **Examples**:
+  - `GET /api/tasks?search=meeting`
+  - `GET /api/tasks?status=TODO`
+  - `GET /api/tasks?priority=HIGH`
+  - `GET /api/tasks?search=meeting&status=DONE&priority=HIGH`
+- **Success Response (200 OK)**: Returns list of tasks matching criteria (or `[]` if no tasks match).
 
 #### 3. Get Single Task by ID
 
 - **Endpoint**: `GET /api/tasks/:id`
-- **Success Response (200 OK)**: Returns the matching task if owned by user.
-- **Error Response (404 Not Found)**: Returned if task does not exist or belongs to another user.
 
 #### 4. Update Task
 
 - **Endpoint**: `PATCH /api/tasks/:id`
-- **Request Body**: Partial update object (`title`, `description`, `status`, `priority`, `dueDate`).
-- **Success Response (200 OK)**: Returns updated task object.
-- **Error Response (404 Not Found)**: Returned if task does not exist or belongs to another user.
 
 #### 5. Delete Task
 
 - **Endpoint**: `DELETE /api/tasks/:id`
-- **Success Response (200 OK)**:
-  ```json
-  {
-    "status": "success",
-    "message": "Task deleted successfully"
-  }
-  ```
-- **Error Response (404 Not Found)**: Returned if task does not exist or belongs to another user.
 
 ---
 

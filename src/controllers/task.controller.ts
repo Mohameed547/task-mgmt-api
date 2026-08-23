@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { TaskService } from '../services';
+import { validateTaskQuery } from '../schemas';
 import { ApiResponseHelper } from '../utils/ApiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ApiError } from '../utils/ApiError';
@@ -27,7 +28,12 @@ export const getTasks = asyncHandler(async (req: AuthenticatedRequest, res: Resp
     throw new ApiError(401, 'Authentication required');
   }
 
-  const tasks = await TaskService.getUserTasks(userId);
+  const queryValidation = validateTaskQuery(req.query as Record<string, unknown>);
+  if (!queryValidation.isValid) {
+    throw new ApiError(400, 'Validation Error', queryValidation.errors);
+  }
+
+  const tasks = await TaskService.getUserTasks(userId, queryValidation.data);
 
   return ApiResponseHelper.success(
     res,
