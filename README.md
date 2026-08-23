@@ -1,6 +1,6 @@
 # Task Management Application - Backend API
 
-Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration, User data model, and User Registration API.
+Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration, User data model, User Registration, and User Login with JWT Authentication.
 
 ## Tech Stack
 
@@ -8,7 +8,7 @@ Production-ready TypeScript Express backend foundation for the Task Management A
 - **Framework**: Express.js
 - **Language**: TypeScript (Strict Mode)
 - **Database**: MongoDB / Mongoose
-- **Authentication Security**: bcryptjs (Password Hashing)
+- **Authentication Security**: bcryptjs & JSON Web Tokens (JWT)
 - **Testing**: Jest & Supertest
 - **Logging**: Morgan
 
@@ -17,24 +17,37 @@ Production-ready TypeScript Express backend foundation for the Task Management A
 ```text
 task-mgmt-api/
 ├── src/
-│   ├── config/          # Application & MongoDB database configuration
-│   ├── controllers/     # Route handlers (auth.controller, health.controller)
-│   ├── middleware/      # Centralized error handling, request logger, 404 & validator middleware
-│   ├── models/          # Mongoose database models & schemas (User model)
+│   ├── config/          # Application, MongoDB database, & JWT environment configuration
+│   ├── controllers/     # Thin route handlers (auth.controller, health.controller)
+│   ├── middleware/      # Error handling, request logger, 404, & validateBody middleware
+│   ├── models/          # Mongoose database models (User model)
 │   ├── routes/          # Express route definitions & modular routing (auth.routes, health.routes)
-│   ├── schemas/         # Validation schemas (auth.schema)
-│   ├── services/        # Business logic layer (auth.service)
-│   ├── types/           # Custom TypeScript interfaces & type aliases (IUser, ApiResponse)
-│   ├── utils/           # Utility functions (ApiError, ApiResponse, asyncHandler, logger)
+│   ├── schemas/         # Validation schemas (auth.schema: register & login validation)
+│   ├── services/        # Reusable business logic layer (auth.service)
+│   ├── types/           # Custom TypeScript interfaces & type aliases (IUser, JwtPayload, ApiResponse)
+│   ├── utils/           # Utility functions (ApiError, ApiResponse, asyncHandler, jwt, logger)
 │   ├── app.ts           # Express application configuration & middleware stack
 │   └── server.ts        # Application entry point & graceful shutdown handling
-├── tests/               # Unit and integration test suites (database, User model, auth & health APIs)
+├── tests/               # Unit and integration test suites (database, User model, JWT, auth & health APIs)
 ├── .env.example         # Example environment variables template
 ├── .gitignore           # Git ignore configuration
 ├── jest.config.ts       # Jest testing configuration
 ├── package.json         # Dependencies & npm scripts
 └── tsconfig.json        # TypeScript compiler options (strict mode)
 ```
+
+## Environment Variables
+
+| Variable | Type | Default Value | Description |
+| :--- | :--- | :--- | :--- |
+| `PORT` | `Number` | `5000` | HTTP Server Port |
+| `NODE_ENV` | `String` | `development` | Runtime environment (`development`, `production`, `test`) |
+| `MONGODB_URI` | `String` | `mongodb://localhost:27017/task_management_db` | MongoDB database connection URI |
+| `CORS_ORIGIN` | `String` | `http://localhost:3000` | Allowed CORS origins |
+| `JWT_SECRET` | `String` | `default_jwt_secret_key_...` | Secret key used to sign & verify JWT tokens |
+| `JWT_EXPIRES_IN` | `String` | `1d` | Token expiration duration (e.g. `1d`, `7d`, `1h`) |
+
+---
 
 ## Data Models
 
@@ -56,79 +69,65 @@ task-mgmt-api/
 
 - **Endpoint**: `GET /api/health`
 - **Description**: Returns current server status, uptime, environment, and MongoDB database connection state.
-- **Success Response (200 OK)**:
-  ```json
-  {
-    "status": "success",
-    "message": "Server is healthy",
-    "data": {
-      "uptime": 12.345,
-      "timestamp": "2026-08-24T00:00:00.000Z",
-      "environment": "development",
-      "database": "connected"
-    }
-  }
-  ```
 
 ### 2. User Registration Endpoint
 
 - **Endpoint**: `POST /api/auth/register`
 - **Description**: Registers a new user account with validated input and bcrypt password hashing.
+
+### 3. User Login Endpoint
+
+- **Endpoint**: `POST /api/auth/login`
+- **Description**: Authenticates user credentials with `bcrypt.compare` and returns a signed JWT token.
 - **Request Body**:
   ```json
   {
-    "name": "John Doe",
     "email": "john@example.com",
     "password": "securePassword123"
   }
   ```
-- **Success Response (201 Created)**:
+- **Success Response (200 OK)**:
   ```json
   {
     "status": "success",
-    "message": "User registered successfully",
+    "message": "Login successful",
     "data": {
-      "_id": "607f1f77bcf86cd799439011",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "createdAt": "2026-08-24T00:00:00.000Z",
-      "updatedAt": "2026-08-24T00:00:00.000Z"
+      "user": {
+        "_id": "607f1f77bcf86cd799439011",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "createdAt": "2026-08-24T00:00:00.000Z",
+        "updatedAt": "2026-08-24T00:00:00.000Z"
+      },
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     }
   }
   ```
 - **Error Responses**:
-  - **400 Bad Request** (Invalid input format or missing fields):
+  - **400 Bad Request** (Invalid input format or missing email/password):
     ```json
     {
       "status": "fail",
       "statusCode": 400,
       "message": "Validation Error",
-      "errors": ["Password must be at least 6 characters long"]
+      "errors": ["Please provide a valid email address"]
     }
     ```
-  - **409 Conflict** (Email already exists):
+  - **401 Unauthorized** (Invalid email or incorrect password):
     ```json
     {
       "status": "fail",
-      "statusCode": 409,
-      "message": "User with this email already exists"
+      "statusCode": 401,
+      "message": "Invalid email or password"
     }
     ```
 
 ---
 
-## MongoDB Setup Instructions
+## Available Scripts
 
-1. **Configure Connection String**:
-   Create `.env` from `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
-   Set `MONGODB_URI` to your database URI.
-
-2. **Available Scripts**:
-   - `npm run dev`: Starts development server with hot-reloading (`tsx`).
-   - `npm run build`: Compiles TypeScript to `dist/`.
-   - `npm run start`: Runs production build.
-   - `npm test`: Runs complete Jest test suite.
-   - `npm run type-check`: Verifies TypeScript strict typing.
+- `npm run dev`: Starts development server with hot-reloading (`tsx`).
+- `npm run build`: Compiles TypeScript to `dist/`.
+- `npm run start`: Runs production build.
+- `npm test`: Runs complete Jest test suite.
+- `npm run type-check`: Verifies TypeScript strict typing.

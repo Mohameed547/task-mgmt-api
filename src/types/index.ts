@@ -12,6 +12,8 @@ export interface EnvironmentVariables {
   NODE_ENV: string;
   MONGODB_URI: string;
   CORS_ORIGIN: string;
+  JWT_SECRET: string;
+  JWT_EXPIRES_IN: string;
 }
 
 export type AsyncRequestHandler = (
@@ -26,4 +28,16 @@ export interface IUser {
   password?: string;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface JwtPayload {
+  userId: string;
+  email?: string;
+  iat?: number;
+  exp?: number;
+}
+
+export interface AuthResponseData {
+  user: Partial<IUser>;
+  token: string;
 }

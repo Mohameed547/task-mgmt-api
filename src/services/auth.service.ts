@@ -1,7 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { User, IUserDocument } from '../models';
-import { RegisterInput } from '../schemas';
+import { RegisterInput, LoginInput } from '../schemas';
+import { AuthResponseData } from '../types';
 import { ApiError } from '../utils/ApiError';
+import { JwtUtils } from '../utils/jwt';
 
 export class AuthService {
   /**
@@ -34,5 +36,42 @@ export class AuthService {
     const userObject = newUser.toObject();
 
     return userObject;
+  }
+
+  /**
+   * Authenticates a user with email and password and returns a JWT token.
+   *
+   * @param input - Validated login credentials (email, password)
+   * @returns Authentication data object containing safe user object and JWT token
+   */
+  public static async loginUser(input: LoginInput): Promise<AuthResponseData> {
+    const normalizedEmail = input.email.trim().toLowerCase();
+
+    // Retrieve user and explicitly include password field for verification
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+    if (!user || !user.password) {
+      // Use generic security message to prevent user enumeration
+      throw new ApiError(401, 'Invalid email or password');
+    }
+
+    // Verify candidate password against stored bcrypt hash
+    const isPasswordValid = await bcrypt.compare(input.password, user.password);
+    if (!isPasswordValid) {
+      throw new ApiError(401, 'Invalid email or password');
+    }
+
+    // Generate signed JWT token with minimal necessary claims
+    const token = JwtUtils.generateToken({
+      userId: user._id.toString(),
+      email: user.email,
+    });
+
+    // Convert user document to object (automatically strips password via schema transform)
+    const safeUser = user.toObject();
+
+    return {
+      user: safeUser,
+      token,
+    };
   }
 }

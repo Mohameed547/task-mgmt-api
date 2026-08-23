@@ -1,1 +1,6 @@
-export { validateRegisterInput, RegisterInput } from './auth.schema';
+export {
+  validateRegisterInput,
+  RegisterInput,
+  validateLoginInput,
+  LoginInput,
+} from './auth.schema';

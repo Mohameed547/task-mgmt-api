@@ -10,4 +10,6 @@ export const env: EnvironmentVariables = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/task_management_db',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  JWT_SECRET: process.env.JWT_SECRET || 'default_jwt_secret_key_change_in_production',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1d',
 };

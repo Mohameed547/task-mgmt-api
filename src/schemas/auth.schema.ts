@@ -4,6 +4,11 @@ export interface RegisterInput {
   password: string;
 }
 
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
 export const validateRegisterInput = (data: unknown): { isValid: boolean; errors: string[]; data?: RegisterInput } => {
   const errors: string[] = [];
 
@@ -46,6 +51,42 @@ export const validateRegisterInput = (data: unknown): { isValid: boolean; errors
     errors: [],
     data: {
       name: input.name!.trim(),
+      email: input.email!.trim().toLowerCase(),
+      password: input.password!,
+    },
+  };
+};
+
+export const validateLoginInput = (data: unknown): { isValid: boolean; errors: string[]; data?: LoginInput } => {
+  const errors: string[] = [];
+
+  if (!data || typeof data !== 'object') {
+    return { isValid: false, errors: ['Request body must be a JSON object'] };
+  }
+
+  const input = data as Partial<LoginInput>;
+
+  // Email validation
+  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+  if (!input.email || typeof input.email !== 'string' || input.email.trim().length === 0) {
+    errors.push('Email is required');
+  } else if (!emailRegex.test(input.email.trim())) {
+    errors.push('Please provide a valid email address');
+  }
+
+  // Password validation
+  if (!input.password || typeof input.password !== 'string' || input.password.length === 0) {
+    errors.push('Password is required');
+  }
+
+  if (errors.length > 0) {
+    return { isValid: false, errors };
+  }
+
+  return {
+    isValid: true,
+    errors: [],
+    data: {
       email: input.email!.trim().toLowerCase(),
       password: input.password!,
     },
