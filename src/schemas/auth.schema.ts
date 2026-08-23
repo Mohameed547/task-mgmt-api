@@ -40,6 +40,8 @@ export const validateRegisterInput = (data: unknown): { isValid: boolean; errors
     errors.push('Password is required');
   } else if (input.password.length < 6) {
     errors.push('Password must be at least 6 characters long');
+  } else if (input.password.length > 100) {
+    errors.push('Password cannot exceed 100 characters');
   }
 
   if (errors.length > 0) {
