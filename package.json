@@ -1,0 +1,45 @@
+{
+  "name": "task-management-backend",
+  "version": "1.0.0",
+  "description": "Backend API foundation for Task Management Application",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "rimraf dist && tsc",
+    "start": "node dist/server.js",
+    "type-check": "tsc --noEmit",
+    "test": "jest --runInBand --detectOpenHandles",
+    "test:watch": "jest --watch"
+  },
+  "keywords": [
+    "express",
+    "typescript",
+    "mongodb",
+    "mongoose",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongoose": "^8.10.1",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.14",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.13.4",
+    "@types/supertest": "^6.0.2",
+    "jest": "^29.7.0",
+    "rimraf": "^6.0.1",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
