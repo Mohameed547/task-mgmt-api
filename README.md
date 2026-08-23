@@ -1,6 +1,6 @@
 # Task Management Application - Backend API
 
-Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration, User data model, Task data model, User Registration, User Login with JWT Authentication, and Authentication Middleware.
+Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration, User data model, Task data model, User Registration, User Login with JWT Authentication, Authentication Middleware, and Task CRUD APIs.
 
 ## Tech Stack
 
@@ -18,17 +18,17 @@ Production-ready TypeScript Express backend foundation for the Task Management A
 task-mgmt-api/
 ├── src/
 │   ├── config/          # Application, MongoDB database, & JWT environment configuration
-│   ├── controllers/     # Thin route handlers (auth.controller, health.controller)
+│   ├── controllers/     # Thin route handlers (auth.controller, task.controller, health.controller)
 │   ├── middleware/      # Error handling, request logger, 404, validateBody, & authenticate middleware
 │   ├── models/          # Mongoose database models (User model & Task model)
-│   ├── routes/          # Express route definitions & modular routing (auth.routes, health.routes)
-│   ├── schemas/         # Validation schemas (auth.schema: register & login validation)
-│   ├── services/        # Reusable business logic layer (auth.service)
+│   ├── routes/          # Express route definitions & modular routing (auth.routes, task.routes, health.routes)
+│   ├── schemas/         # Validation schemas (auth.schema & task.schema)
+│   ├── services/        # Reusable business logic layer (auth.service & task.service)
 │   ├── types/           # Custom TypeScript interfaces & type aliases (IUser, ITask, JwtPayload, AuthenticatedRequest)
 │   ├── utils/           # Utility functions (ApiError, ApiResponse, asyncHandler, jwt, logger)
 │   ├── app.ts           # Express application configuration & middleware stack
 │   └── server.ts        # Application entry point & graceful shutdown handling
-├── tests/               # Unit and integration test suites (database, User & Task models, JWT, middleware & auth APIs)
+├── tests/               # Unit and integration test suites (database, User & Task models, JWT, middleware, Auth & Task APIs)
 ├── .env.example         # Example environment variables template
 ├── .gitignore           # Git ignore configuration
 ├── jest.config.ts       # Jest testing configuration
@@ -74,34 +74,88 @@ task-mgmt-api/
 | `createdAt` | `Date` | Auto-generated via `timestamps: true` | Record creation timestamp |
 | `updatedAt` | `Date` | Auto-generated via `timestamps: true` | Record update timestamp |
 
-**Task Performance Indexes**:
-- Single field indexes: `user`, `title`, `status`, `priority`.
-- Compound indexes: `{ user: 1, status: 1 }`, `{ user: 1, priority: 1 }`, `{ user: 1, title: 1 }`.
-
 ---
 
 ## API Documentation
 
-### 1. Health Check Endpoint
+### Auth Endpoints
 
-- **Endpoint**: `GET /api/health`
-- **Description**: Returns current server status, uptime, environment, and MongoDB database connection state.
+- `POST /api/auth/register` - Registers a new user account.
+- `POST /api/auth/login` - Authenticates user credentials and returns JWT token.
+- `GET /api/auth/me` - Returns authenticated user profile. (Requires `Authorization: Bearer <TOKEN>`)
 
-### 2. User Registration Endpoint
+### Task Endpoints (All Protected - Require `Authorization: Bearer <TOKEN>`)
 
-- **Endpoint**: `POST /api/auth/register`
-- **Description**: Registers a new user account with validated input and bcrypt password hashing.
+All task endpoints enforce strict multi-tenant isolation. Users can only create, view, update, and delete their own tasks.
 
-### 3. User Login Endpoint
+#### 1. Create Task
 
-- **Endpoint**: `POST /api/auth/login`
-- **Description**: Authenticates user credentials with `bcrypt.compare` and returns a signed JWT token.
+- **Endpoint**: `POST /api/tasks`
+- **Request Body**:
+  ```json
+  {
+    "title": "Build Frontend UI",
+    "description": "Implement React UI components",
+    "status": "TODO",
+    "priority": "HIGH",
+    "dueDate": "2026-12-31T23:59:59.000Z"
+  }
+  ```
+- **Success Response (201 Created)**:
+  ```json
+  {
+    "status": "success",
+    "message": "Task created successfully",
+    "data": {
+      "_id": "607f1f77bcf86cd799439011",
+      "title": "Build Frontend UI",
+      "description": "Implement React UI components",
+      "status": "TODO",
+      "priority": "HIGH",
+      "dueDate": "2026-12-31T23:59:59.000Z",
+      "user": "507f1f77bcf86cd799439012",
+      "createdAt": "2026-08-24T00:00:00.000Z",
+      "updatedAt": "2026-08-24T00:00:00.000Z"
+    }
+  }
+  ```
 
-### 4. Authenticated User Profile Endpoint (Protected)
+#### 2. List Authenticated User's Tasks
 
-- **Endpoint**: `GET /api/auth/me`
-- **Headers**: `Authorization: Bearer <JWT_TOKEN>`
-- **Description**: Returns the authenticated user's profile information.
+- **Endpoint**: `GET /api/tasks`
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "status": "success",
+    "message": "Tasks retrieved successfully",
+    "data": [...]
+  }
+  ```
+
+#### 3. Get Single Task by ID
+
+- **Endpoint**: `GET /api/tasks/:id`
+- **Success Response (200 OK)**: Returns the matching task if owned by user.
+- **Error Response (404 Not Found)**: Returned if task does not exist or belongs to another user.
+
+#### 4. Update Task
+
+- **Endpoint**: `PATCH /api/tasks/:id`
+- **Request Body**: Partial update object (`title`, `description`, `status`, `priority`, `dueDate`).
+- **Success Response (200 OK)**: Returns updated task object.
+- **Error Response (404 Not Found)**: Returned if task does not exist or belongs to another user.
+
+#### 5. Delete Task
+
+- **Endpoint**: `DELETE /api/tasks/:id`
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "status": "success",
+    "message": "Task deleted successfully"
+  }
+  ```
+- **Error Response (404 Not Found)**: Returned if task does not exist or belongs to another user.
 
 ---
 
