@@ -1,6 +1,6 @@
 # Task Management Application - Backend API
 
-Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration, User data model, User Registration, and User Login with JWT Authentication.
+Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration, User data model, User Registration, User Login with JWT Authentication, and Authentication Middleware.
 
 ## Tech Stack
 
@@ -19,16 +19,16 @@ task-mgmt-api/
 ├── src/
 │   ├── config/          # Application, MongoDB database, & JWT environment configuration
 │   ├── controllers/     # Thin route handlers (auth.controller, health.controller)
-│   ├── middleware/      # Error handling, request logger, 404, & validateBody middleware
+│   ├── middleware/      # Error handling, request logger, 404, validateBody, & authenticate middleware
 │   ├── models/          # Mongoose database models (User model)
 │   ├── routes/          # Express route definitions & modular routing (auth.routes, health.routes)
 │   ├── schemas/         # Validation schemas (auth.schema: register & login validation)
 │   ├── services/        # Reusable business logic layer (auth.service)
-│   ├── types/           # Custom TypeScript interfaces & type aliases (IUser, JwtPayload, ApiResponse)
+│   ├── types/           # Custom TypeScript interfaces & type aliases (IUser, JwtPayload, AuthenticatedRequest)
 │   ├── utils/           # Utility functions (ApiError, ApiResponse, asyncHandler, jwt, logger)
 │   ├── app.ts           # Express application configuration & middleware stack
 │   └── server.ts        # Application entry point & graceful shutdown handling
-├── tests/               # Unit and integration test suites (database, User model, JWT, auth & health APIs)
+├── tests/               # Unit and integration test suites (database, User model, JWT, middleware & auth APIs)
 ├── .env.example         # Example environment variables template
 ├── .gitignore           # Git ignore configuration
 ├── jest.config.ts       # Jest testing configuration
@@ -79,46 +79,33 @@ task-mgmt-api/
 
 - **Endpoint**: `POST /api/auth/login`
 - **Description**: Authenticates user credentials with `bcrypt.compare` and returns a signed JWT token.
-- **Request Body**:
-  ```json
-  {
-    "email": "john@example.com",
-    "password": "securePassword123"
-  }
-  ```
+
+### 4. Authenticated User Profile Endpoint (Protected)
+
+- **Endpoint**: `GET /api/auth/me`
+- **Headers**: `Authorization: Bearer <JWT_TOKEN>`
+- **Description**: Returns the authenticated user's profile information.
 - **Success Response (200 OK)**:
   ```json
   {
     "status": "success",
-    "message": "Login successful",
+    "message": "User profile retrieved successfully",
     "data": {
-      "user": {
-        "_id": "607f1f77bcf86cd799439011",
-        "name": "John Doe",
-        "email": "john@example.com",
-        "createdAt": "2026-08-24T00:00:00.000Z",
-        "updatedAt": "2026-08-24T00:00:00.000Z"
-      },
-      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      "_id": "607f1f77bcf86cd799439011",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "createdAt": "2026-08-24T00:00:00.000Z",
+      "updatedAt": "2026-08-24T00:00:00.000Z"
     }
   }
   ```
 - **Error Responses**:
-  - **400 Bad Request** (Invalid input format or missing email/password):
-    ```json
-    {
-      "status": "fail",
-      "statusCode": 400,
-      "message": "Validation Error",
-      "errors": ["Please provide a valid email address"]
-    }
-    ```
-  - **401 Unauthorized** (Invalid email or incorrect password):
+  - **401 Unauthorized** (Missing header, malformed token, or expired token):
     ```json
     {
       "status": "fail",
       "statusCode": 401,
-      "message": "Invalid email or password"
+      "message": "Authentication token is required"
     }
     ```
 
