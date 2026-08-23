@@ -1,2 +1,1 @@
-// Placeholder for Mongoose models
-export {};
+export { User, IUserDocument } from './user.model';

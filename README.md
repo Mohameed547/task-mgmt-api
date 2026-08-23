@@ -1,6 +1,6 @@
 # Task Management Application - Backend API
 
-Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration.
+Production-ready TypeScript Express backend foundation for the Task Management Application with Mongoose & MongoDB database configuration and User data model.
 
 ## Tech Stack
 
@@ -19,21 +19,37 @@ task-mgmt-api/
 │   ├── config/          # Application & MongoDB database configuration
 │   ├── controllers/     # Route handlers & controller logic
 │   ├── middleware/      # Centralized error handling, request logging, & route protection
-│   ├── models/          # Mongoose database models & schemas
+│   ├── models/          # Mongoose database models & schemas (User model)
 │   ├── routes/          # Express route definitions & modular routing
 │   ├── schemas/         # Validation schemas
 │   ├── services/        # Reusable business logic layer
-│   ├── types/           # Custom TypeScript interfaces & type aliases
+│   ├── types/           # Custom TypeScript interfaces & type aliases (IUser, ApiResponse)
 │   ├── utils/           # Utility functions (ApiError, ApiResponse, asyncHandler, logger)
 │   ├── app.ts           # Express application configuration & middleware stack
 │   └── server.ts        # Application entry point & graceful shutdown handling
-├── tests/               # Unit and integration test suites (database & API endpoints)
+├── tests/               # Unit and integration test suites (database, User model & API endpoints)
 ├── .env.example         # Example environment variables template
 ├── .gitignore           # Git ignore configuration
 ├── jest.config.ts       # Jest testing configuration
 ├── package.json         # Dependencies & npm scripts
 └── tsconfig.json        # TypeScript compiler options (strict mode)
 ```
+
+## Data Models
+
+### User Model (`User`)
+
+| Field | Type | Modifiers / Rules | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `String` | `required`, `trim`, `minlength: 2`, `maxlength: 50` | Full name of the user |
+| `email` | `String` | `required`, `unique`, `lowercase`, `trim`, `index` | Normalized unique email address |
+| `password` | `String` | `required`, `select: false` | Password hash (hidden by default) |
+| `createdAt` | `Date` | Auto-generated via `timestamps: true` | Record creation timestamp |
+| `updatedAt` | `Date` | Auto-generated via `timestamps: true` | Record update timestamp |
+
+**Security & Normalization Features**:
+- Email addresses are automatically trimmed and lowercased upon assignment.
+- Passwords have `select: false` set in Mongoose schema and are automatically stripped out during JSON serialization (`toJSON` / `toObject` transforms).
 
 ## MongoDB Setup Instructions
 
@@ -49,12 +65,6 @@ task-mgmt-api/
    ```env
    MONGODB_URI=mongodb://localhost:27017/task_management_db
    ```
-   *Note: Credentials and secrets must NEVER be hardcoded into source code. Always configure connection details via environment variables.*
-
-3. **Database Startup & Fault Tolerance**:
-   - The application connects to MongoDB using Mongoose before starting the HTTP listener.
-   - If database connection fails during server startup, server initialization is aborted and an error is logged (`Server will not start silently when DB connection fails`).
-   - Mongoose readyState is exposed via `/api/health`.
 
 ## Available Scripts
 
@@ -86,7 +96,3 @@ task-mgmt-api/
     }
   }
   ```
-
-## Error Handling Architecture
-
-Centralized error handling is implemented using a custom `ApiError` class extending `Error`. All asynchronous route controllers are wrapped with `asyncHandler` to pass unexpected errors to the global `errorHandler` middleware.

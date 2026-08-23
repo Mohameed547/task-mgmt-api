@@ -19,3 +19,11 @@ export type AsyncRequestHandler = (
   res: Response,
   next: NextFunction
 ) => Promise<unknown>;
+
+export interface IUser {
+  name: string;
+  email: string;
+  password?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
