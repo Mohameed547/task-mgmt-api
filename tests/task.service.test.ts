@@ -48,26 +48,65 @@ describe('TaskService Unit Tests', () => {
     });
   });
 
-  describe('getUserTasks with Search and Filters', () => {
-    it('should retrieve all tasks for userA when no filters are provided', async () => {
+  describe('getUserTasks with Search, Pagination, and Filters', () => {
+    const mockCountDocuments = Task.countDocuments as jest.Mock;
+
+    it('should retrieve paginated tasks for userA with default page=1 and limit=9', async () => {
       const mockTasks = [
         { _id: taskId, title: 'User A Task 1', user: userAId },
         { _id: new mongoose.Types.ObjectId().toString(), title: 'User A Task 2', user: userAId },
       ];
 
-      const mockSort = jest.fn().mockResolvedValueOnce(mockTasks);
+      const mockLimit = jest.fn().mockResolvedValueOnce(mockTasks);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(25);
 
       const result = await TaskService.getUserTasks(userAId);
 
       expect(mockTaskFind).toHaveBeenCalledWith({ user: userAId });
       expect(mockSort).toHaveBeenCalledWith({ createdAt: -1 });
-      expect(result).toHaveLength(2);
+      expect(mockSkip).toHaveBeenCalledWith(0);
+      expect(mockLimit).toHaveBeenCalledWith(9);
+      expect(mockCountDocuments).toHaveBeenCalledWith({ user: userAId });
+
+      expect(result).toEqual({
+        tasks: mockTasks,
+        pagination: {
+          page: 1,
+          limit: 9,
+          total: 25,
+          totalPages: 3,
+        },
+      });
+    });
+
+    it('should calculate skip correctly when custom page and limit are provided', async () => {
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(20);
+
+      const result = await TaskService.getUserTasks(userAId, { page: 3, limit: 5 });
+
+      expect(mockSkip).toHaveBeenCalledWith(10); // (3 - 1) * 5
+      expect(mockLimit).toHaveBeenCalledWith(5);
+      expect(result.pagination).toEqual({
+        page: 3,
+        limit: 5,
+        total: 20,
+        totalPages: 4,
+      });
     });
 
     it('should query MongoDB with escaped regex when search filter is provided', async () => {
-      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(0);
 
       await TaskService.getUserTasks(userAId, { search: 'meeting (team)' });
 
@@ -78,8 +117,11 @@ describe('TaskService Unit Tests', () => {
     });
 
     it('should query MongoDB with status filter when status is provided', async () => {
-      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(0);
 
       await TaskService.getUserTasks(userAId, { status: TaskStatus.IN_PROGRESS });
 
@@ -90,8 +132,11 @@ describe('TaskService Unit Tests', () => {
     });
 
     it('should query MongoDB with priority filter when priority is provided', async () => {
-      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(0);
 
       await TaskService.getUserTasks(userAId, { priority: TaskPriority.HIGH });
 
@@ -101,14 +146,19 @@ describe('TaskService Unit Tests', () => {
       });
     });
 
-    it('should combine search, status, and priority in MongoDB query', async () => {
-      const mockSort = jest.fn().mockResolvedValueOnce([]);
+    it('should combine search, status, priority, and pagination in MongoDB query', async () => {
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(12);
 
       await TaskService.getUserTasks(userAId, {
         search: 'urgent',
         status: TaskStatus.TODO,
         priority: TaskPriority.HIGH,
+        page: 2,
+        limit: 5,
       });
 
       expect(mockTaskFind).toHaveBeenCalledWith({
@@ -117,6 +167,8 @@ describe('TaskService Unit Tests', () => {
         status: TaskStatus.TODO,
         priority: TaskPriority.HIGH,
       });
+      expect(mockSkip).toHaveBeenCalledWith(5);
+      expect(mockLimit).toHaveBeenCalledWith(5);
     });
   });
 

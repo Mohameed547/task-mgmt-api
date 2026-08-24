@@ -122,10 +122,34 @@ describe('Task Schema Validation Unit Tests', () => {
       expect(result.errors[0]).toContain('Invalid priority filter');
     });
 
-    it('should ignore empty search/status/priority strings in query', () => {
+    it('should ignore empty search/status/priority strings and apply default page=1 and limit=9', () => {
       const result = validateTaskQuery({ search: '   ', status: '', priority: '   ' });
       expect(result.isValid).toBe(true);
-      expect(result.data).toEqual({});
+      expect(result.data).toEqual({ page: 1, limit: 9 });
+    });
+
+    it('should reject invalid page parameter values', () => {
+      const result = validateTaskQuery({ page: 0 });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Page must be a positive integer');
+    });
+
+    it('should reject invalid limit parameter values', () => {
+      const result = validateTaskQuery({ limit: -1 });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Limit must be a positive integer');
+    });
+
+    it('should reject limit exceeding maximum of 50', () => {
+      const result = validateTaskQuery({ limit: 51 });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Limit cannot exceed maximum of 50');
+    });
+
+    it('should accept valid page and limit values', () => {
+      const result = validateTaskQuery({ page: '2', limit: '20' });
+      expect(result.isValid).toBe(true);
+      expect(result.data).toEqual({ page: 2, limit: 20 });
     });
   });
 });

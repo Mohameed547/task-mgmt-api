@@ -100,8 +100,10 @@ describe('Task API Endpoints (/api/tasks)', () => {
     });
   });
 
-  describe('GET /api/tasks (List & Search & Filter Tasks)', () => {
-    it('should return 200 OK with list of tasks owned by authenticated user', async () => {
+  describe('GET /api/tasks (List & Search & Filter & Paginate Tasks)', () => {
+    const mockCountDocuments = Task.countDocuments as jest.Mock;
+
+    it('should return 200 OK with paginated list of tasks owned by authenticated user', async () => {
       const mockTasks = [
         {
           _id: taskId,
@@ -111,20 +113,31 @@ describe('Task API Endpoints (/api/tasks)', () => {
         },
       ];
 
-      const mockSort = jest.fn().mockResolvedValueOnce(mockTasks);
+      const mockLimit = jest.fn().mockResolvedValueOnce(mockTasks);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(1);
 
       const response = await request(app)
-        .get('/api/tasks')
+        .get('/api/tasks?page=1&limit=9')
         .set('Authorization', `Bearer ${userAToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('status', 'success');
-      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data.tasks).toHaveLength(1);
+      expect(response.body.data.pagination).toEqual({
+        page: 1,
+        limit: 9,
+        total: 1,
+        totalPages: 1,
+      });
       expect(mockTaskFind).toHaveBeenCalledWith({ user: userAId });
+      expect(mockSkip).toHaveBeenCalledWith(0);
+      expect(mockLimit).toHaveBeenCalledWith(9);
     });
 
-    it('should filter tasks by title search query parameter', async () => {
+    it('should filter tasks by title search query parameter with pagination', async () => {
       const mockTasks = [
         {
           _id: taskId,
@@ -134,15 +147,18 @@ describe('Task API Endpoints (/api/tasks)', () => {
         },
       ];
 
-      const mockSort = jest.fn().mockResolvedValueOnce(mockTasks);
+      const mockLimit = jest.fn().mockResolvedValueOnce(mockTasks);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(1);
 
       const response = await request(app)
-        .get('/api/tasks?search=meeting')
+        .get('/api/tasks?search=meeting&page=1&limit=9')
         .set('Authorization', `Bearer ${userAToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data.tasks).toHaveLength(1);
       expect(mockTaskFind).toHaveBeenCalledWith({
         user: userAId,
         title: { $regex: 'meeting', $options: 'i' },
@@ -150,8 +166,11 @@ describe('Task API Endpoints (/api/tasks)', () => {
     });
 
     it('should filter tasks by status query parameter', async () => {
-      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(0);
 
       const response = await request(app)
         .get('/api/tasks?status=TODO')
@@ -165,8 +184,11 @@ describe('Task API Endpoints (/api/tasks)', () => {
     });
 
     it('should filter tasks by priority query parameter', async () => {
-      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(0);
 
       const response = await request(app)
         .get('/api/tasks?priority=HIGH')
@@ -179,49 +201,76 @@ describe('Task API Endpoints (/api/tasks)', () => {
       });
     });
 
-    it('should support combining search, status, and priority parameters', async () => {
-      const mockSort = jest.fn().mockResolvedValueOnce([]);
+    it('should support combining search, status, priority, and custom pagination parameters', async () => {
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(15);
 
       const response = await request(app)
-        .get('/api/tasks?search=meeting&status=DONE&priority=HIGH')
+        .get('/api/tasks?search=meeting&status=DONE&priority=HIGH&page=2&limit=5')
         .set('Authorization', `Bearer ${userAToken}`);
 
       expect(response.status).toBe(200);
-      expect(mockTaskFind).toHaveBeenCalledWith({
-        user: userAId,
-        title: { $regex: 'meeting', $options: 'i' },
-        status: TaskStatus.DONE,
-        priority: TaskPriority.HIGH,
+      expect(response.body.data.pagination).toEqual({
+        page: 2,
+        limit: 5,
+        total: 15,
+        totalPages: 3,
       });
+      expect(mockSkip).toHaveBeenCalledWith(5);
+      expect(mockLimit).toHaveBeenCalledWith(5);
     });
 
-    it('should return 200 OK with empty array [] when no tasks match query criteria', async () => {
-      const mockSort = jest.fn().mockResolvedValueOnce([]);
-      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
-
+    it('should return 400 Bad Request when invalid page or limit parameters are provided', async () => {
       const response = await request(app)
-        .get('/api/tasks?search=nonexistentterm')
-        .set('Authorization', `Bearer ${userAToken}`);
-
-      expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('status', 'success');
-      expect(response.body.data).toEqual([]);
-    });
-
-    it('should return 400 Bad Request when an invalid status query parameter is provided', async () => {
-      const response = await request(app)
-        .get('/api/tasks?status=INVALID_STATUS')
+        .get('/api/tasks?page=0&limit=-5')
         .set('Authorization', `Bearer ${userAToken}`);
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('status', 'fail');
-      expect(response.body).toHaveProperty('message', 'Validation Error');
+      expect(response.body.errors).toContain('Page must be a positive integer');
+      expect(response.body.errors).toContain('Limit must be a positive integer');
+    });
+
+    it('should return 400 Bad Request when limit exceeds maximum limit of 50', async () => {
+      const response = await request(app)
+        .get('/api/tasks?limit=100')
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('status', 'fail');
+      expect(response.body.errors).toContain('Limit cannot exceed maximum of 50');
+    });
+
+    it('should return 200 OK with empty tasks array when page exceeds total pages', async () => {
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
+      mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(5);
+
+      const response = await request(app)
+        .get('/api/tasks?page=10&limit=9')
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.tasks).toEqual([]);
+      expect(response.body.data.pagination).toEqual({
+        page: 10,
+        limit: 9,
+        total: 5,
+        totalPages: 1,
+      });
     });
 
     it('should maintain user isolation even when search query matches tasks owned by other users', async () => {
-      const mockSort = jest.fn().mockResolvedValueOnce([]);
+      const mockLimit = jest.fn().mockResolvedValueOnce([]);
+      const mockSkip = jest.fn().mockReturnValue({ limit: mockLimit });
+      const mockSort = jest.fn().mockReturnValue({ skip: mockSkip });
       mockTaskFind.mockReturnValueOnce({ sort: mockSort });
+      mockCountDocuments.mockResolvedValueOnce(0);
 
       await request(app)
         .get('/api/tasks?search=common')

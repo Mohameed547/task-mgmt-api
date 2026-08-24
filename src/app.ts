@@ -8,9 +8,23 @@ import apiRoutes from './routes';
 
 const app: Express = express();
 
-// CORS Configuration for future React frontend
+// CORS Configuration for React frontend
+const allowedOrigins = [
+  env.CORS_ORIGIN,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+];
+
 const corsOptions: cors.CorsOptions = {
-  origin: env.CORS_ORIGIN,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

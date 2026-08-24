@@ -3,6 +3,16 @@ import { Task, ITaskDocument } from '../models';
 import { CreateTaskInput, UpdateTaskInput, TaskQueryFilters } from '../schemas';
 import { ApiError } from '../utils/ApiError';
 
+export interface PaginatedTasksResult {
+  tasks: ITaskDocument[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export class TaskService {
   /**
    * Creates a new task associated with the authenticated user.
@@ -17,12 +27,16 @@ export class TaskService {
   }
 
   /**
-   * Retrieves all tasks belonging strictly to the authenticated user with optional search and filtering.
+   * Retrieves tasks belonging strictly to the authenticated user with server-side pagination, search, and filtering.
    */
   public static async getUserTasks(
     userId: string,
     filters?: TaskQueryFilters
-  ): Promise<ITaskDocument[]> {
+  ): Promise<PaginatedTasksResult> {
+    const page = filters?.page && filters.page >= 1 ? filters.page : 1;
+    const limit = filters?.limit && filters.limit >= 1 ? filters.limit : 9;
+    const skip = (page - 1) * limit;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mongoQuery: Record<string, any> = { user: userId };
 
@@ -40,8 +54,25 @@ export class TaskService {
       mongoQuery.title = { $regex: safeSearch, $options: 'i' };
     }
 
-    const tasks = await Task.find(mongoQuery).sort({ createdAt: -1 });
-    return tasks;
+    const [tasks, total] = await Promise.all([
+      Task.find(mongoQuery)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Task.countDocuments(mongoQuery),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      tasks,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    };
   }
 
   /**

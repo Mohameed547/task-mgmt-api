@@ -20,6 +20,8 @@ export interface TaskQueryFilters {
   search?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
+  page?: number;
+  limit?: number;
 }
 
 export const validateCreateTaskInput = (
@@ -194,6 +196,32 @@ export const validateTaskQuery = (
         filters.priority = priorityStr as TaskPriority;
       }
     }
+  }
+
+  // Page validation (Default: 1, Must be a positive integer >= 1)
+  if (query.page !== undefined && query.page !== null && String(query.page).trim() !== '') {
+    const pageNum = Number(query.page);
+    if (isNaN(pageNum) || !Number.isInteger(pageNum) || pageNum < 1) {
+      errors.push('Page must be a positive integer');
+    } else {
+      filters.page = pageNum;
+    }
+  } else {
+    filters.page = 1;
+  }
+
+  // Limit validation (Default: 9, Must be a positive integer >= 1 and <= 50)
+  if (query.limit !== undefined && query.limit !== null && String(query.limit).trim() !== '') {
+    const limitNum = Number(query.limit);
+    if (isNaN(limitNum) || !Number.isInteger(limitNum) || limitNum < 1) {
+      errors.push('Limit must be a positive integer');
+    } else if (limitNum > 50) {
+      errors.push('Limit cannot exceed maximum of 50');
+    } else {
+      filters.limit = limitNum;
+    }
+  } else {
+    filters.limit = 9;
   }
 
   if (errors.length > 0) {
