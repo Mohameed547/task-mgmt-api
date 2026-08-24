@@ -4,7 +4,8 @@ import { validateTaskQuery } from '../schemas';
 import { ApiResponseHelper } from '../utils/ApiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ApiError } from '../utils/ApiError';
-import { AuthenticatedRequest } from '../types';
+import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary';
+import { AuthenticatedRequest, ITaskAttachment } from '../types';
 
 export const createTask = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.userId;
@@ -12,14 +13,38 @@ export const createTask = asyncHandler(async (req: AuthenticatedRequest, res: Re
     throw new ApiError(401, 'Authentication required');
   }
 
-  const task = await TaskService.createTask(userId, req.body);
+  let attachment: ITaskAttachment | undefined;
 
-  return ApiResponseHelper.success(
-    res,
-    201,
-    'Task created successfully',
-    task
-  );
+  // Upload to Cloudinary if file attachment is attached
+  if (req.file) {
+    try {
+      attachment = await uploadToCloudinary(req.file);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Cloudinary file upload failed';
+      throw new ApiError(500, `Failed to upload file attachment: ${errorMessage}`);
+    }
+  }
+
+  try {
+    const task = await TaskService.createTask(userId, req.body, attachment);
+
+    return ApiResponseHelper.success(
+      res,
+      201,
+      'Task created successfully',
+      task
+    );
+  } catch (err) {
+    // If DB task creation fails after a successful Cloudinary upload, delete the uploaded asset to avoid orphaned files
+    if (attachment?.publicId) {
+      try {
+        await deleteFromCloudinary(attachment.publicId);
+      } catch (cleanupErr) {
+        // Log cleanup error silently without overriding primary error
+      }
+    }
+    throw err;
+  }
 });
 
 export const getTasks = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

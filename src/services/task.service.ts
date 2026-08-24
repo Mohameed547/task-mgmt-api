@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { Task, ITaskDocument } from '../models';
 import { CreateTaskInput, UpdateTaskInput, TaskQueryFilters } from '../schemas';
 import { ApiError } from '../utils/ApiError';
+import { ITaskAttachment } from '../types';
 
 export interface PaginatedTasksResult {
   tasks: ITaskDocument[];
@@ -15,11 +16,16 @@ export interface PaginatedTasksResult {
 
 export class TaskService {
   /**
-   * Creates a new task associated with the authenticated user.
+   * Creates a new task associated with the authenticated user, optionally with a file attachment.
    */
-  public static async createTask(userId: string, input: CreateTaskInput): Promise<ITaskDocument> {
+  public static async createTask(
+    userId: string,
+    input: CreateTaskInput,
+    attachment?: ITaskAttachment
+  ): Promise<ITaskDocument> {
     const task = await Task.create({
       ...input,
+      ...(attachment && { attachment }),
       user: userId,
     });
 

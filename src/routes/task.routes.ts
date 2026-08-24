@@ -8,6 +8,7 @@ import {
 } from '../controllers/task.controller';
 import { authenticate } from '../middleware/authenticate';
 import { validateBody } from '../middleware/validate';
+import { uploadAttachmentMiddleware } from '../middleware/upload';
 import { validateCreateTaskInput, validateUpdateTaskInput } from '../schemas';
 
 const router = Router();
@@ -15,7 +16,7 @@ const router = Router();
 // Protect all task endpoints with JWT authentication middleware
 router.use(authenticate);
 
-router.post('/', validateBody(validateCreateTaskInput), createTask);
+router.post('/', uploadAttachmentMiddleware, validateBody(validateCreateTaskInput), createTask);
 router.get('/', getTasks);
 router.get('/:id', getTaskById);
 router.patch('/:id', validateBody(validateUpdateTaskInput), updateTask);

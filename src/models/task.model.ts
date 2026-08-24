@@ -45,6 +45,13 @@ const taskSchema = new Schema<ITaskDocument>(
     dueDate: {
       type: Date,
     },
+    attachment: {
+      fileName: { type: String, trim: true },
+      fileUrl: { type: String, trim: true },
+      publicId: { type: String, trim: true },
+      mimeType: { type: String, trim: true },
+      fileSize: { type: Number },
+    },
     user: {
       type: Schema.Types.ObjectId,
       ref: 'User',

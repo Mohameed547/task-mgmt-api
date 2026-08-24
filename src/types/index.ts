@@ -15,6 +15,9 @@ export interface EnvironmentVariables {
   CORS_ORIGIN: string;
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
+  CLOUDINARY_CLOUD_NAME: string;
+  CLOUDINARY_API_KEY: string;
+  CLOUDINARY_API_SECRET: string;
 }
 
 export type AsyncRequestHandler = (
@@ -43,12 +46,21 @@ export enum TaskPriority {
   HIGH = 'HIGH',
 }
 
+export interface ITaskAttachment {
+  fileName: string;
+  fileUrl: string;
+  publicId: string;
+  mimeType: string;
+  fileSize: number;
+}
+
 export interface ITask {
   title: string;
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
   dueDate?: Date;
+  attachment?: ITaskAttachment;
   user: Types.ObjectId | string;
   createdAt?: Date;
   updatedAt?: Date;
