@@ -4,6 +4,8 @@ import { env } from './config/env';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { logger } from './utils/logger';
 
+// Server initialization entrypoint
+
 let server: Server;
 
 export const startServer = async (): Promise<Server | undefined> => {

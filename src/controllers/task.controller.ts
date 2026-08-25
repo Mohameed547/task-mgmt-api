@@ -92,14 +92,37 @@ export const updateTask = asyncHandler(async (req: AuthenticatedRequest, res: Re
   }
 
   const taskId = req.params.id;
-  const updatedTask = await TaskService.updateTask(userId, taskId, req.body);
+  let attachment: ITaskAttachment | undefined;
 
-  return ApiResponseHelper.success(
-    res,
-    200,
-    'Task updated successfully',
-    updatedTask
-  );
+  // Upload to Cloudinary if file attachment is attached during edit
+  if (req.file) {
+    try {
+      attachment = await uploadToCloudinary(req.file);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Cloudinary file upload failed';
+      throw new ApiError(500, `Failed to upload file attachment: ${errorMessage}`);
+    }
+  }
+
+  try {
+    const updatedTask = await TaskService.updateTask(userId, taskId, req.body, attachment);
+
+    return ApiResponseHelper.success(
+      res,
+      200,
+      'Task updated successfully',
+      updatedTask
+    );
+  } catch (err) {
+    if (attachment?.publicId) {
+      try {
+        await deleteFromCloudinary(attachment.publicId);
+      } catch (cleanupErr) {
+        // Log cleanup error
+      }
+    }
+    throw err;
+  }
 });
 
 export const deleteTask = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

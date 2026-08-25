@@ -103,15 +103,22 @@ export class TaskService {
   public static async updateTask(
     userId: string,
     taskId: string,
-    input: UpdateTaskInput
+    input: UpdateTaskInput,
+    attachment?: ITaskAttachment
   ): Promise<ITaskDocument> {
     if (!mongoose.Types.ObjectId.isValid(taskId)) {
       throw new ApiError(400, 'Invalid task ID format');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = { ...input };
+    if (attachment) {
+      updateData.attachment = attachment;
+    }
+
     const updatedTask = await Task.findOneAndUpdate(
       { _id: taskId, user: userId },
-      { $set: input },
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 

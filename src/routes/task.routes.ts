@@ -19,7 +19,7 @@ router.use(authenticate);
 router.post('/', uploadAttachmentMiddleware, validateBody(validateCreateTaskInput), createTask);
 router.get('/', getTasks);
 router.get('/:id', getTaskById);
-router.patch('/:id', validateBody(validateUpdateTaskInput), updateTask);
+router.patch('/:id', uploadAttachmentMiddleware, validateBody(validateUpdateTaskInput), updateTask);
 router.delete('/:id', deleteTask);
 
 export default router;
