@@ -613,6 +613,7 @@ npm start
 1. **Single Attachment Limit**: Each task supports a maximum of 1 file attachment.
 2. **File Size Limit**: Maximum allowable attachment size is fixed to 5 MB per file.
 3. **MIME Restrictions**: Restricted strictly to standard documents (`PDF`, `DOC`, `DOCX`) and web images (`PNG`, `JPG`, `JPEG`).
+4. **Email OTP Verification Omission**: Email-based OTP verification during user registration was intentionally omitted. Free-tier cloud deployment environments (such as Render, Railway, or Vercel) enforce strict network egress restrictions and block outbound SMTP email ports (25/587/465), leading to frequent email delivery failures. To guarantee reliable, friction-free user onboarding in production and evaluation, registration issues a secure JWT token and seamlessly transitions users to authentication.
 
 ---
 
