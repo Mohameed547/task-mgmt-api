@@ -1,5 +1,6 @@
 import express, { Express } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { env } from './config/env';
 import { requestLogger } from './middleware/requestLogger';
 import { notFoundHandler } from './middleware/notFoundHandler';
@@ -7,6 +8,9 @@ import { errorHandler } from './middleware/errorHandler';
 import apiRoutes from './routes';
 
 const app: Express = express();
+
+// Security Headers Middleware
+app.use(helmet());
 
 // CORS Configuration for React frontend
 const allowedOrigins = [
@@ -31,9 +35,9 @@ const corsOptions: cors.CorsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Body Parsing Middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body Parsing Middleware (Restricted size for security)
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // Request Logging Middleware
 app.use(requestLogger);

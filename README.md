@@ -54,6 +54,8 @@ The **Task Management API** provides a secure, robust, and scalable backend foun
 | **Cloudinary** | Cloud image and file management SDK | `^2.10.1` |
 | **Jest & Supertest** | Testing framework & HTTP assertion library | `^29.7.0` / `^7.0.0` |
 | **Morgan** | HTTP request logger middleware | `^1.10.0` |
+| **Helmet** | Security HTTP headers middleware | `^8.3.0` |
+| **express-rate-limit** | Rate limiting middleware for brute-force protection | `^8.6.2` |
 | **dotenv** | Environment variable management | `^16.4.7` |
 | **cors** | Cross-Origin Resource Sharing middleware | `^2.8.5` |
 

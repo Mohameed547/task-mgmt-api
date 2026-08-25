@@ -5,6 +5,7 @@ import { ApiResponseHelper } from '../utils/ApiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ApiError } from '../utils/ApiError';
 import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary';
+import { logger } from '../utils/logger';
 import { AuthenticatedRequest, ITaskAttachment } from '../types';
 
 export const createTask = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -40,7 +41,7 @@ export const createTask = asyncHandler(async (req: AuthenticatedRequest, res: Re
       try {
         await deleteFromCloudinary(attachment.publicId);
       } catch (cleanupErr) {
-        // Log cleanup error silently without overriding primary error
+        logger.error('Failed to cleanup Cloudinary attachment asset after DB failure:', cleanupErr);
       }
     }
     throw err;
@@ -118,7 +119,7 @@ export const updateTask = asyncHandler(async (req: AuthenticatedRequest, res: Re
       try {
         await deleteFromCloudinary(attachment.publicId);
       } catch (cleanupErr) {
-        // Log cleanup error
+        logger.error('Failed to cleanup Cloudinary attachment asset after DB failure:', cleanupErr);
       }
     }
     throw err;

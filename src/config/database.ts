@@ -13,6 +13,8 @@ import { logger } from '../utils/logger';
  *
  * @param customUri - Optional override URI (useful for testing environments)
  */
+let listenersAttached = false;
+
 export const connectDatabase = async (customUri?: string): Promise<typeof mongoose> => {
   const uri = customUri || env.MONGODB_URI;
 
@@ -31,14 +33,18 @@ export const connectDatabase = async (customUri?: string): Promise<typeof mongoo
 
     logger.info(`MongoDB connected successfully [Host: ${host}, Database: ${dbName}]`);
 
-    // Attach runtime connection event listeners
-    mongoose.connection.on('error', (err) => {
-      logger.error('MongoDB runtime connection error:', err);
-    });
+    // Attach runtime connection event listeners once to prevent listener accumulation memory leaks
+    if (!listenersAttached) {
+      mongoose.connection.on('error', (err) => {
+        logger.error('MongoDB runtime connection error:', err);
+      });
 
-    mongoose.connection.on('disconnected', () => {
-      logger.warn('MongoDB connection lost. Connection state: disconnected.');
-    });
+      mongoose.connection.on('disconnected', () => {
+        logger.warn('MongoDB connection lost. Connection state: disconnected.');
+      });
+
+      listenersAttached = true;
+    }
 
     return connection;
   } catch (error) {
